@@ -60,11 +60,11 @@ with tab1:
     st.sidebar.title("🛠️ 모델 파라미터 설정")
     
     with st.sidebar.expander("📅 수요 예측 (Demand)", expanded=False):
-        default_d = [1600, 3000, 3200, 3800, 2200, 2200]
+        default_d = [2500, 4500, 5000, 5500, 4000, 4000] # 비효율 상황 유도를 위해 대폭 상향
         months_input = st.number_input("계획 기간 (개월)", 1, 12, 6)
         demands = []
         for i in range(months_input):
-            val = default_d[i] if i < len(default_d) else 2000
+            val = default_d[i] if i < len(default_d) else 3000
             d = st.number_input(f"{i+1}월 수요", value=val, key=f"d_{i}")
             demands.append(d)
             
@@ -79,8 +79,8 @@ with tab1:
         c_sub = st.number_input("하청 비용 (/개)", value=45) # 하청이 비싼 상황 강조
 
     with st.sidebar.expander("⚙️ 생산 능력 및 제약 (Capacity)", expanded=True):
-        init_w = st.number_input("초기 인원 (명)", value=80)
-        init_i = st.number_input("초기 재고 (개)", value=500) 
+        init_w = st.number_input("초기 인원 (명)", value=60) # 역량 부족 상황 유도를 위해 하향
+        init_i = st.number_input("초기 재고 (개)", value=300) 
         final_i_min = st.number_input("최종 재고 최소치 (개)", value=500)
         work_days = st.number_input("작업 일수 (/월)", value=20)
         work_hours = st.number_input("정규 작업 시간 (/일)", value=8)
@@ -227,21 +227,19 @@ with tab2:
         
         # 1. 총 비용
         cost_delta, cost_delta_color = get_delta("cost", cost, inverse=True)
-        col_m1.metric("총 비용 (Total Cost)", f"{cost/1000:,.1f}M", delta=cost_delta, delta_color=cost_delta_color if cost_delta else "normal")
+        col_m1.metric("총 비용 (Total Cost)", f"{cost/1000:,.1f}M", delta=cost_delta, delta_color=cost_delta_color)
         
-        # 2. 가동률 & 노동 유연성
-        util_delta, _ = get_delta("util", avg_utilization)
-        flex_tag = "🔴 경직" if is_rigid else "🟢 유연"
-        col_m2.metric(f"평균 가동률 [{flex_tag}]", f"{avg_utilization:.1f}%", delta=f"{'조정불가' if is_rigid else '조정가능'}")
+        # 2. 평균 가동률
+        util_delta, util_delta_color = get_delta("util", avg_utilization)
+        col_m2.metric("평균 가동률", f"{avg_utilization:.1f}%", delta=util_delta, delta_color=util_delta_color)
         
-        # 3. 하청 의존도 & 단가 수준
+        # 3. 하청 의존도
         sub_delta, sub_delta_color = get_delta("sub", sub_ratio, inverse=True)
-        price_tag = "⚠️ 고비용" if is_sub_expensive else "정적"
-        col_m3.metric(f"하청 의존도 [{price_tag}]", f"{sub_ratio:.1f}%", delta=f"단가:{c_sub}", delta_color="inverse" if is_sub_expensive else "normal")
+        col_m3.metric("하청 의존도", f"{sub_ratio:.1f}%", delta=sub_delta, delta_color=sub_delta_color)
         
-        # 4. 납기준수율
-        srv_delta, _ = get_delta("service", service_level)
-        col_m4.metric("납기 준수율", f"{service_level:.1f}%", delta=srv_delta)
+        # 4. 납기 준수율
+        srv_delta, srv_delta_color = get_delta("service", service_level)
+        col_m4.metric("납기 준수율", f"{service_level:.1f}%", delta=srv_delta, delta_color=srv_delta_color)
 
         # Charts
         st.markdown("---")
