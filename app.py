@@ -220,7 +220,8 @@ with tab2:
                     return f"{pct:+.1f}%", color
             return None, "normal"
 
-        # 내부 로직용 판별
+        # 내부 로직용 판별 (고용/해고 비용이 높으면 경직된 것으로 간주)
+        is_rigid = c_hiring > 800 or c_firing > 800
         internal_cost = c_material + (c_regular * std_time) 
         
         # 1. 총 비용
