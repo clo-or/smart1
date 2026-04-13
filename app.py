@@ -48,6 +48,7 @@ st.markdown("---")
 
 # Sidebar - Parameters
 with st.sidebar:
+    st.subheader("c321050 이승아 스마트제조 프로젝트 1")
     st.header("📋 입력 파라미터")
     
     with st.expander("💰 비용 설정 (천원)", expanded=True):
