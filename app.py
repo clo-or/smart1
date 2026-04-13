@@ -75,12 +75,12 @@ with tab1:
         c_hiring = st.number_input("고용 비용 (/인)", value=300)
         c_firing = st.number_input("해고 비용 (/인)", value=500)
         c_holding = st.number_input("재고 유지비 (/개/월)", value=2)
-        c_backlog = st.number_input("부재고 비용 (/개/월)", value=5)
+        c_backlog = st.number_input("부재고 비용 (/개/월)", value=10) # 부재고 비용을 높여서 미납 최소화 유도
         c_sub = st.number_input("하청 비용 (/개)", value=30)
 
     with st.sidebar.expander("⚙️ 생산 능력 및 제약 (Capacity)", expanded=True):
         init_w = st.number_input("초기 인원 (명)", value=80)
-        init_i = st.number_input("초기 재고 (개)", value=1000)
+        init_i = st.number_input("초기 재고 (개)", value=500) # 초기 재고를 약간 줄여서 최적화 필요성 부각
         final_i_min = st.number_input("최종 재고 최소치 (개)", value=500)
         work_days = st.number_input("작업 일수 (/월)", value=20)
         work_hours = st.number_input("정규 작업 시간 (/일)", value=8)
@@ -215,38 +215,6 @@ with tab2:
 
             for insight in insights:
                 st.write(insight)
-
-        with st.expander("📉 비용 절감 핵심 전략 (Cost Reduction Focus)", expanded=True):
-            # Calculate cost breakdown here for logic
-            cost_summary = {
-                "정규 노동": (df['Workers(W)'] * c_regular * work_days * work_hours).sum(),
-                "연장 근로": (df['OT(O)'] * c_overtime).sum(),
-                "고용/해고": (df['Hired(H)'] * c_hiring + df['LaidOff(L)'] * c_firing).sum(),
-                "재고 유지": (df['Inv(I)'] * c_holding).sum(),
-                "부족분(Backlog)": (df['Shortage(S)'] * c_backlog).sum(),
-                "재료비": (df['Prod(P)'] * c_material).sum(),
-                "하청": (df['Sub(C)'] * c_sub).sum()
-            }
-            sorted_costs = sorted(cost_summary.items(), key=lambda x: x[1], reverse=True)
-            top_cost_item = sorted_costs[0][0]
-            
-            st.write(f"현재 가장 큰 비용을 차지하는 항목은 **'{top_cost_item}'** 입니다. 전체 비용을 낮추기 위해 다음 전략을 우선적으로 검토하십시오.")
-            
-            advice = {
-                "정규 노동": "• **공정 개선/자동화**: 정규 노동비 비중이 가장 큽니다. 단기 성과보다는 장기적인 공정 자동화나 작업 효율 개선(표준 시간 단축)을 통해 기초 생산 단가를 낮춰야 합니다.",
-                "재료비": "• **공급망 최적화**: 재료비 비중이 높습니다. 대량 구매를 통한 단가 할인, 대체 원자재 발굴 또는 불량률(스크랩) 절감을 통해 재료비 단가를 낮추는 것이 필수적입니다.",
-                "하청": f"• **자체 생산 확대**: 외부 하청 비용(개당 {c_sub}천원)이 자체 생산 비용보다 현저히 높습니다. 인력을 추가 고용하거나 초과 근무 한도를 늘려 자체 생산량을 높이는 것이 유리합니다.",
-                "재고 유지": "• **재고 관리 슬림화**: 재고 유지 비용이 많이 발생하고 있습니다. 안전 재고 수준을 낮추거나(JIT 방식), 수요 예측의 정확도를 높여 선제적 생산보다는 수요에 밀착된 생산 계획을 수립해야 합니다.",
-                "고용/해고": "• **안정적 고용 체계**: 빈번한 인력 변동으로 인한 고용/해고 비용이 큽니다. 숙련도 향상을 위해 안정적인 정규직 체제를 유지하고, 변동하는 수요는 고용 조정보다는 하청이나 연장 근로로 대응하는 것이 비용 면에서 유리할 수 있습니다.",
-                "연장 근로": "• **인력 확충**: 연장 근로 수당이 많이 지불되고 있습니다. 초과 근무를 줄이기 위해 정규직 인원을 더 채용하거나, 생산 설비를 확충하여 정규 시간 내 생산 능력을 높여야 합니다.",
-                "부족분(Backlog)": "• **생산 능력 선행 확보**: 납기 지연으로 인한 비용이 심각합니다. 수요가 몰리는 시기 이전에 미리 재고를 축적하거나, 비상시에 대비한 하청 업체 및 설비 여력을 사전에 확보해야 합니다."
-            }
-            
-            # Show top 3 advice
-            for i in range(min(3, len(sorted_costs))):
-                item, val = sorted_costs[i]
-                if val > 0:
-                    st.info(advice.get(item, f"• **{item} 절감**: 해당 항목의 비중을 낮추기 위한 운영 효율화가 필요합니다."))
 
         # Charts
         st.markdown("---")
