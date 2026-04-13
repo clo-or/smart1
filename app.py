@@ -236,24 +236,25 @@ with tab2:
             
             # 1. 하청 리스크 진단
             with diag_c1:
-                sub_status = "🔴 위험" if sub_ratio > 25 else ("🟡 주의" if sub_ratio > 10 else "🟢 양호")
-                st.markdown(f"**하청 의존도: {sub_status}**")
-                st.info(f"전체 물량의 {sub_ratio:.1f}%를 하청에 의존 중입니다. (단가: {c_sub})")
+                sub_status = "🔴 위험 (의존도 높음)" if sub_ratio > 20 else ("🟡 주의" if sub_ratio > 5 else "🟢 양호")
+                st.markdown(f"**하청 의존 상태: {sub_status}**")
+                st.info(f"전체 물량의 {sub_ratio:.1f}%를 하청으로 처리 중입니다.")
             
             # 2. 노동 환경 진단
             with diag_c2:
-                # 인원 변동폭 계산
-                wf_change = df['Hired(H)'].sum() + df['LaidOff(L)'].sum()
-                flex_score = "🔴 경직" if wf_change == 0 else ("🟡 보통" if wf_change < 10 else "🟢 유연")
-                st.markdown(f"**노동 유연성: {flex_score}**")
-                st.info(f"현재 모델은 비싼 고용/해고 비용({c_hiring}/{c_firing})으로 인해 인력 조정을 회피하고 있습니다.")
+                # 고용/해고 비용이 임금 대비 너무 높으면 경직된 것으로 간주
+                is_rigid = c_hiring > 800 or c_firing > 800
+                flex_status = "🔴 경직 (조정 비용 과다)" if is_rigid else "🟢 유연 (조정 원활)"
+                st.markdown(f"**노동 환경: {flex_status}**")
+                st.info(f"고용({c_hiring}) 및 해고({c_firing}) 비용이 높아 인력 구조가 고착화되기 쉽습니다.")
 
             # 3. 비용 효율성
             with diag_c3:
-                internal_cost = 10 + (4 * 4) # 재료 + 정규노무
-                is_sub_expensive = "Yes" if c_sub > internal_cost * 1.2 else "No"
-                st.markdown(f"**하청 단가 적정성: {is_sub_expensive}**")
-                st.info(f"하청 단가가 자체 생산비 대비 약 {((c_sub/internal_cost)-1)*100:.1f}% 높습니다.")
+                internal_cost = c_material + (c_regular * std_time) 
+                cost_ratio = (c_sub / internal_cost) if internal_cost > 0 else 0
+                price_status = "🔴 매우 비쌈" if cost_ratio > 1.5 else ("🟡 주의" if cost_ratio > 1.1 else "🟢 경쟁력 있음")
+                st.markdown(f"**하청 단가 수준: {price_status}**")
+                st.info(f"하청 단가({c_sub})가 자체 생산비({internal_cost:.0f}) 대비 {cost_ratio:.1f}배 수준입니다.")
 
         # Charts
         st.markdown("---")
