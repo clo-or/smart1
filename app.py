@@ -89,6 +89,8 @@ with tab1:
 
     model_type = st.sidebar.selectbox("🔢 변수 유형 선택", ["LP (Linear Programming)", "IP (Integer Programming)"])
     var_cat = 'Continuous' if "LP" in model_type else 'Integer'
+    
+    st.sidebar.markdown("<div style='margin-top: 30px; text-align: center; color: #94a3b8; font-size: 0.95em; font-weight: 600;'>C321050 이승아<br>스마트제조 프로젝트 1</div>", unsafe_allow_html=True)
 
     # Optimization Logic
     def run_optimization():
@@ -266,4 +268,4 @@ with tab2:
         st.warning("⚠️ 아직 최적화를 실행하지 않았습니다. 'APP 모델 수립' 탭에서 실행 버튼을 눌러주세요.")
 
 st.markdown("---")
-st.caption("Produced by SMART Manufacturing Project 1 | Gardening Equipment APP System")
+st.markdown("<div style='margin-top: 30px; text-align: center; color: #94a3b8; font-size: 0.95em; font-weight: 600;'>C321050 이승아<br>스마트제조 프로젝트 1</div>", unsafe_allow_html=True)
