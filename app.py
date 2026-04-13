@@ -191,8 +191,10 @@ with tab2:
         total_sub = df['Sub(C)'].sum()
         total_backlog = df['Shortage(S)'].sum()
         
-        avg_utilization = (total_prod * std_time) / (df['Workers(W)'].sum() * work_days * work_hours) * 100
-        sub_ratio = (total_sub / (total_prod + total_sub)) * 100 if (total_prod + total_sub) > 0 else 0
+        denom = (df['Workers(W)'].sum() * work_days * work_hours)
+        avg_utilization = (total_prod * std_time) / denom * 100 if denom > 0 else 0.0
+        
+        sub_ratio = (total_sub / (total_prod + total_sub)) * 100 if (total_prod + total_sub) > 0 else 0.0
         service_level = (1 - total_backlog / total_demand) * 100 if total_demand > 0 else 100
         cost_per_unit = cost / total_demand if total_demand > 0 else 0
         
