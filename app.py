@@ -209,6 +209,17 @@ with tab2:
         st.markdown("### 📈 핵심 성과 지표 (Operational Metrics)")
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         
+        def get_delta(key, current_val, inverse=False):
+            if 'prev_metrics' in st.session_state and st.session_state['prev_metrics']:
+                prev_val = st.session_state['prev_metrics'].get(key, None)
+                if prev_val is not None and prev_val != 0:
+                    diff = current_val - prev_val
+                    pct = (diff / prev_val) * 100
+                    if inverse:
+                        return f"{pct:+.1f}%", "normal" if diff > 0 else "inverse"
+                    return f"{pct:+.1f}%", "normal"
+            return None, None
+
         # 내부 로직용 판별
         is_rigid = c_hiring > 800 or c_firing > 800
         internal_cost = c_material + (c_regular * std_time)
