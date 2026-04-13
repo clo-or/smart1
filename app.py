@@ -254,8 +254,6 @@ with tab2:
             
             fig_work = go.Figure()
             fig_work.add_trace(go.Scatter(x=df['Month'], y=df['Workers(W)'], mode='lines+markers', name='인력', line=dict(color='#7950f2', width=3)))
-            if is_rigid:
-                fig_work.add_annotation(text="경직된 노동 구조 (인원 고정)", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font=dict(size=14, color="red"), opacity=0.3)
             fig_work.update_layout(title="<b>월별 인력 변동 추이</b>", xaxis_title="월", yaxis_title="인원", template="plotly_white")
             st.plotly_chart(fig_work, use_container_width=True)
 
