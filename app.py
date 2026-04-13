@@ -72,11 +72,11 @@ with tab1:
         c_material = st.number_input("재료비 (/개)", value=10)
         c_regular = st.number_input("정규 임금 (시간당)", value=4)
         c_overtime = st.number_input("초과 근무 수당 (시간당)", value=6)
-        c_hiring = st.number_input("고용 비용 (/인)", value=300)
-        c_firing = st.number_input("해고 비용 (/인)", value=500)
+        c_hiring = st.number_input("고용 비용 (/인)", value=1000) # 경직성 강조를 위해 상향
+        c_firing = st.number_input("해고 비용 (/인)", value=1500) # 경직성 강조를 위해 상향
         c_holding = st.number_input("재고 유지비 (/개/월)", value=2)
-        c_backlog = st.number_input("부재고 비용 (/개/월)", value=10) # 부재고 비용을 높여서 미납 최소화 유도
-        c_sub = st.number_input("하청 비용 (/개)", value=30)
+        c_backlog = st.number_input("부재고 비용 (/개/월)", value=50) # 미납을 극도로 꺼리는 시나리오
+        c_sub = st.number_input("하청 비용 (/개)", value=45) # 하청이 비싼 상황 강조
 
     with st.sidebar.expander("⚙️ 생산 능력 및 제약 (Capacity)", expanded=True):
         init_w = st.number_input("초기 인원 (명)", value=80)
@@ -231,32 +231,29 @@ with tab2:
         col_m3.metric("하청 의존도", f"{sub_ratio:.1f}%", delta=sub_delta, delta_color=sub_delta_color if sub_delta else "normal")
         col_m4.metric("납기 준수율", f"{service_level:.1f}%", delta=srv_delta)
 
-        with st.expander("🧐 전문가 진단 및 개선 권고 (Expert Advisor)", expanded=True):
-            insights = []
+        with st.expander("🧐 운영 효율성 및 리스크 진단 (Diagnostic Report)", expanded=True):
+            diag_c1, diag_c2, diag_c3 = st.columns(3)
             
-            # Contextual Insight based on change
-            if 'prev_total_cost' in st.session_state:
-                cost_diff = cost - st.session_state['prev_total_cost']
-                if cost_diff < 0:
-                    insights.append(f"✨ **최적화 성공**: 이전 시나리오 대비 비용이 **{abs(cost_diff)/1000:,.1f}M 만큼 절감**되었습니다.")
-                elif cost_diff > 0:
-                    insights.append(f"⚠️ **비용 상승**: 파라미터 변경으로 인해 총 비용이 **{cost_diff/1000:,.1f}M 증가**했습니다.")
+            # 1. 하청 리스크 진단
+            with diag_c1:
+                sub_status = "🔴 위험" if sub_ratio > 25 else ("🟡 주의" if sub_ratio > 10 else "🟢 양호")
+                st.markdown(f"**하청 의존도: {sub_status}**")
+                st.info(f"전체 물량의 {sub_ratio:.1f}%를 하청에 의존 중입니다. (단가: {c_sub})")
+            
+            # 2. 노동 환경 진단
+            with diag_c2:
+                # 인원 변동폭 계산
+                wf_change = df['Hired(H)'].sum() + df['LaidOff(L)'].sum()
+                flex_score = "🔴 경직" if wf_change == 0 else ("🟡 보통" if wf_change < 10 else "🟢 유연")
+                st.markdown(f"**노동 유연성: {flex_score}**")
+                st.info(f"현재 모델은 비싼 고용/해고 비용({c_hiring}/{c_firing})으로 인해 인력 조정을 회피하고 있습니다.")
 
-            if avg_utilization > 95:
-                insights.append("⚠️ **생산 부하 과다**: 가동률이 지나치게 높습니다. 초과 근무 한도를 늘리거나 인원 충원을 고려하세요.")
-            elif avg_utilization < 70:
-                insights.append("ℹ️ **여유 생산 능력**: 인력이 수요에 비해 과다할 수 있습니다. 해고 비용을 검토하여 인력 조정을 고려하세요.")
-            
-            if sub_ratio > 20:
-                insights.append("⚠️ **하청 비중 위험**: 하청 비용({c_sub})이 높을 경우 직접 생산 비중을 높이는 것이 유리할 수 있습니다.")
-            
-            if total_backlog > 0:
-                insights.append(f"❌ **미납 발생 ({total_backlog:,.0f}개)**: 부재고 비용({c_backlog})이 발생 중입니다. 재고 유지비와 비교하여 안전 재고를 늘려보세요.")
-            else:
-                insights.append("✅ **납기 완벽 대응**: 모든 수요가 적기에 충족되고 있습니다.")
-                
-            for insight in insights:
-                st.write(insight)
+            # 3. 비용 효율성
+            with diag_c3:
+                internal_cost = 10 + (4 * 4) # 재료 + 정규노무
+                is_sub_expensive = "Yes" if c_sub > internal_cost * 1.2 else "No"
+                st.markdown(f"**하청 단가 적정성: {is_sub_expensive}**")
+                st.info(f"하청 단가가 자체 생산비 대비 약 {((c_sub/internal_cost)-1)*100:.1f}% 높습니다.")
 
         # Charts
         st.markdown("---")
@@ -264,10 +261,10 @@ with tab2:
         
         with c1:
             fig_prod = go.Figure()
-            fig_prod.add_trace(go.Bar(x=df['Month'], y=df['Demand'], name='수요', marker_color='#adb5bd', opacity=0.6))
-            fig_prod.add_trace(go.Scatter(x=df['Month'], y=df['Prod(P)'], name='자체생산', line=dict(color='#228be6', width=4)))
-            fig_prod.add_trace(go.Scatter(x=df['Month'], y=df['Prod(P)'] + df['Sub(C)'], name='총 공급(생산+하청)', line=dict(color='#40c057', width=3, dash='dot')))
-            fig_prod.update_layout(title="<b>수요 대비 공급 현황</b>", xaxis_title="월", yaxis_title="수량", template="plotly_white")
+            fig_prod.add_trace(go.Bar(x=df['Month'], y=df['Demand'], name='수요 (Demand)', marker_color='#adb5bd', opacity=0.4))
+            fig_prod.add_trace(go.Bar(x=df['Month'], y=df['Prod(P)'], name='자체생산 (Internal)', marker_color='#228be6'))
+            fig_prod.add_trace(go.Bar(x=df['Month'], y=df['Sub(C)'], name='하청 (Subcontract)', marker_color='#fab005'))
+            fig_prod.update_layout(title="<b>수요 대비 공급 구성 (자체 vs 하청)</b>", barmode='stack', xaxis_title="월", yaxis_title="수량", template="plotly_white")
             st.plotly_chart(fig_prod, use_container_width=True)
             
             fig_work = go.Figure()
