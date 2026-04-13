@@ -59,7 +59,23 @@ with tab1:
     
     st.sidebar.title("🛠️ 모델 파라미터 설정")
     
-    with st.sidebar.expander("📅 수요 예측 (Demand)", expanded=True):
+    # Quick Presets for Presentation
+    st.sidebar.subheader("🎯 발표용 프리셋")
+    p_col1, p_col2 = st.sidebar.columns(2)
+    if p_col1.button("📉 비효율 모드", help="비용이 높고 미납이 발생하는 상황 세팅"):
+        st.session_state['d_init_i'] = 100
+        st.session_state['d_ot_limit'] = 5
+        st.session_state['d_c_sub'] = 60
+        st.rerun()
+    if p_col2.button("✨ 최적화 모드", help="효율적인 파라미터로 자동 세팅"):
+        st.session_state['d_init_i'] = 500
+        st.session_state['d_ot_limit'] = 20
+        st.session_state['d_c_sub'] = 30
+        st.rerun()
+    
+    st.sidebar.markdown("---")
+    
+    with st.sidebar.expander("📅 수요 예측 (Demand)", expanded=False):
         default_d = [1600, 3000, 3200, 3800, 2200, 2200]
         months_input = st.number_input("계획 기간 (개월)", 1, 12, 6)
         demands = []
@@ -76,15 +92,15 @@ with tab1:
         c_firing = st.number_input("해고 비용 (/인)", value=500)
         c_holding = st.number_input("재고 유지비 (/개/월)", value=2)
         c_backlog = st.number_input("부재고 비용 (/개/월)", value=10) # 부재고 비용을 높여서 미납 최소화 유도
-        c_sub = st.number_input("하청 비용 (/개)", value=30)
+        c_sub = st.number_input("하청 비용 (/개)", value=st.session_state.get('d_c_sub', 50))
 
     with st.sidebar.expander("⚙️ 생산 능력 및 제약 (Capacity)", expanded=True):
         init_w = st.number_input("초기 인원 (명)", value=80)
-        init_i = st.number_input("초기 재고 (개)", value=500) # 초기 재고를 약간 줄여서 최적화 필요성 부각
+        init_i = st.number_input("초기 재고 (개)", value=st.session_state.get('d_init_i', 500)) 
         final_i_min = st.number_input("최종 재고 최소치 (개)", value=500)
         work_days = st.number_input("작업 일수 (/월)", value=20)
         work_hours = st.number_input("정규 작업 시간 (/일)", value=8)
-        ot_limit = st.number_input("초과 시간 제한 (시간/인/월)", value=10)
+        ot_limit = st.number_input("초과 시간 제한 (시간/인/월)", value=st.session_state.get('d_ot_limit', 10))
         std_time = st.number_input("작업 표준 시간 (시간/개)", value=4)
 
     model_type = st.sidebar.selectbox("🔢 변수 유형 선택", ["LP (Linear Programming)", "IP (Integer Programming)"])
@@ -165,6 +181,12 @@ with tab1:
             return None, None
 
     if st.button("🚀 최적화 실행", use_container_width=True):
+        # Store previous result before running new optimization
+        if 'df_res' in st.session_state:
+            st.session_state['prev_df_res'] = st.session_state['df_res']
+            st.session_state['prev_total_cost'] = st.session_state['total_cost']
+            st.session_state['prev_metrics'] = st.session_state.get('curr_metrics', None)
+
         df_res, total_cost = run_optimization()
         if df_res is not None:
             st.session_state['df_res'] = df_res
@@ -179,42 +201,76 @@ with tab2:
         cost = st.session_state['total_cost']
         
         # Summary & Insights Section
-        st.subheader("💡 계획 분석 및 인사이트 (Plan Analysis)")
-        
-        # Calculate heuristics for judgement
+        # Calculate current metrics
         total_demand = df['Demand'].sum()
         total_prod = df['Prod(P)'].sum()
         total_sub = df['Sub(C)'].sum()
         total_backlog = df['Shortage(S)'].sum()
         
         avg_utilization = (total_prod * std_time) / (df['Workers(W)'].sum() * work_days * work_hours) * 100
-        sub_ratio = (total_sub / (total_prod + total_sub)) * 100
+        sub_ratio = (total_sub / (total_prod + total_sub)) * 100 if (total_prod + total_sub) > 0 else 0
         service_level = (1 - total_backlog / total_demand) * 100 if total_demand > 0 else 100
+        cost_per_unit = cost / total_demand if total_demand > 0 else 0
         
-        col_i1, col_i2, col_i3, col_i4 = st.columns(4)
-        col_i1.metric("평균 설비 가동률", f"{avg_utilization:.1f}%")
-        col_i2.metric("하청 의존도", f"{sub_ratio:.1f}%")
-        col_i3.metric("서비스 수준 (납기)", f"{service_level:.1f}%")
-        col_i4.metric("단가당 생산비용", f"{cost / total_demand:.2f} 천원")
+        curr_metrics = {
+            "cost": cost,
+            "util": avg_utilization,
+            "sub": sub_ratio,
+            "service": service_level,
+            "unit_cost": cost_per_unit
+        }
+        st.session_state['curr_metrics'] = curr_metrics
 
-        with st.expander("🧐 계획의 적절성 진단 (Expert Assessment)", expanded=True):
+        # Comparison Logic
+        st.markdown("### 📈 성과 지표 (Comparison with Previous)")
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        
+        def get_delta(key, current_val, inverse=False):
+            if 'prev_metrics' in st.session_state and st.session_state['prev_metrics']:
+                prev_val = st.session_state['prev_metrics'].get(key, None)
+                if prev_val is not None and prev_val != 0:
+                    diff = current_val - prev_val
+                    pct = (diff / prev_val) * 100
+                    # For costs, negative delta is good. For efficiency, positive delta is good.
+                    if inverse:
+                        return f"{pct:+.1f}%", "normal" if diff > 0 else "inverse"
+                    return f"{pct:+.1f}%", "normal"
+            return None, None
+
+        cost_delta, cost_delta_color = get_delta("cost", cost, inverse=True)
+        util_delta, _ = get_delta("util", avg_utilization)
+        sub_delta, sub_delta_color = get_delta("sub", sub_ratio, inverse=True)
+        srv_delta, _ = get_delta("service", service_level)
+
+        col_m1.metric("총 비용 (Total Cost)", f"{cost/1000:,.1f}M", delta=cost_delta, delta_color=cost_delta_color if cost_delta else "normal")
+        col_m2.metric("평균 가동률", f"{avg_utilization:.1f}%", delta=util_delta)
+        col_m3.metric("하청 의존도", f"{sub_ratio:.1f}%", delta=sub_delta, delta_color=sub_delta_color if sub_delta else "normal")
+        col_m4.metric("납기 준수율", f"{service_level:.1f}%", delta=srv_delta)
+
+        with st.expander("🧐 전문가 진단 및 개선 권고 (Expert Advisor)", expanded=True):
             insights = []
+            
+            # Contextual Insight based on change
+            if 'prev_total_cost' in st.session_state:
+                cost_diff = cost - st.session_state['prev_total_cost']
+                if cost_diff < 0:
+                    insights.append(f"✨ **최적화 성공**: 이전 시나리오 대비 비용이 **{abs(cost_diff)/1000:,.1f}M 만큼 절감**되었습니다.")
+                elif cost_diff > 0:
+                    insights.append(f"⚠️ **비용 상승**: 파라미터 변경으로 인해 총 비용이 **{cost_diff/1000:,.1f}M 증가**했습니다.")
+
             if avg_utilization > 95:
-                insights.append("⚠️ **생산 부하 과다**: 가동률이 95%를 초과하여 설비 고장이나 휴가 발생 시 대응이 어렵습니다.")
+                insights.append("⚠️ **생산 부하 과다**: 가동률이 지나치게 높습니다. 초과 근무 한도를 늘리거나 인원 충원을 고려하세요.")
             elif avg_utilization < 70:
-                insights.append("ℹ️ **여유 생산 능력**: 가동률이 낮습니다. 유휴 인력이나 설비 처분을 고려할 필요가 있습니다.")
+                insights.append("ℹ️ **여유 생산 능력**: 인력이 수요에 비해 과다할 수 있습니다. 해고 비용을 검토하여 인력 조정을 고려하세요.")
             
             if sub_ratio > 20:
-                insights.append("⚠️ **하청 비중 높음**: 외부 의존도가 높아 가격 경쟁력이 낮아질 수 있습니다. 자체 설비 확장을 검토하십시오.")
+                insights.append("⚠️ **하청 비중 위험**: 하청 비용({c_sub})이 높을 경우 직접 생산 비중을 높이는 것이 유리할 수 있습니다.")
             
             if total_backlog > 0:
-                insights.append(f"❌ **공급 부족 발생**: 총 {total_backlog:,.0f}개의 부재고가 발생했습니다. 고객 신뢰도 하락이 우려됩니다.")
+                insights.append(f"❌ **미납 발생 ({total_backlog:,.0f}개)**: 부재고 비용({c_backlog})이 발생 중입니다. 재고 유지비와 비교하여 안전 재고를 늘려보세요.")
             else:
-                insights.append("✅ **납기 준수**: 모든 수요를 적기에 대응하도록 계획되었습니다.")
+                insights.append("✅ **납기 완벽 대응**: 모든 수요가 적기에 충족되고 있습니다.")
                 
-            if df['Hired(H)'].sum() > 0 and df['LaidOff(L)'].sum() > 0:
-                insights.append("ℹ️ **인력 유동성**: 계약 기간 내 고용과 해고가 동시에 발생합니다. 숙련도 저하에 주의하십시오.")
-
             for insight in insights:
                 st.write(insight)
 
