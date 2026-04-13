@@ -206,55 +206,31 @@ with tab2:
         st.session_state['curr_metrics'] = curr_metrics
 
         # Comparison Logic
-        st.markdown("### 📈 성과 지표 (Comparison with Previous)")
+        st.markdown("### 📈 핵심 성과 지표 (Operational Metrics)")
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         
-        def get_delta(key, current_val, inverse=False):
-            if 'prev_metrics' in st.session_state and st.session_state['prev_metrics']:
-                prev_val = st.session_state['prev_metrics'].get(key, None)
-                if prev_val is not None and prev_val != 0:
-                    diff = current_val - prev_val
-                    pct = (diff / prev_val) * 100
-                    # For costs, negative delta is good. For efficiency, positive delta is good.
-                    if inverse:
-                        return f"{pct:+.1f}%", "normal" if diff > 0 else "inverse"
-                    return f"{pct:+.1f}%", "normal"
-            return None, None
-
+        # 내부 로직용 판별
+        is_rigid = c_hiring > 800 or c_firing > 800
+        internal_cost = c_material + (c_regular * std_time)
+        is_sub_expensive = c_sub > internal_cost * 1.2
+        
+        # 1. 총 비용
         cost_delta, cost_delta_color = get_delta("cost", cost, inverse=True)
-        util_delta, _ = get_delta("util", avg_utilization)
-        sub_delta, sub_delta_color = get_delta("sub", sub_ratio, inverse=True)
-        srv_delta, _ = get_delta("service", service_level)
-
         col_m1.metric("총 비용 (Total Cost)", f"{cost/1000:,.1f}M", delta=cost_delta, delta_color=cost_delta_color if cost_delta else "normal")
-        col_m2.metric("평균 가동률", f"{avg_utilization:.1f}%", delta=util_delta)
-        col_m3.metric("하청 의존도", f"{sub_ratio:.1f}%", delta=sub_delta, delta_color=sub_delta_color if sub_delta else "normal")
+        
+        # 2. 가동률 & 노동 유연성
+        util_delta, _ = get_delta("util", avg_utilization)
+        flex_tag = "🔴 경직" if is_rigid else "🟢 유연"
+        col_m2.metric(f"평균 가동률 [{flex_tag}]", f"{avg_utilization:.1f}%", delta=f"{'조정불가' if is_rigid else '조정가능'}")
+        
+        # 3. 하청 의존도 & 단가 수준
+        sub_delta, sub_delta_color = get_delta("sub", sub_ratio, inverse=True)
+        price_tag = "⚠️ 고비용" if is_sub_expensive else "정적"
+        col_m3.metric(f"하청 의존도 [{price_tag}]", f"{sub_ratio:.1f}%", delta=f"단가:{c_sub}", delta_color="inverse" if is_sub_expensive else "normal")
+        
+        # 4. 납기준수율
+        srv_delta, _ = get_delta("service", service_level)
         col_m4.metric("납기 준수율", f"{service_level:.1f}%", delta=srv_delta)
-
-        with st.expander("🧐 운영 효율성 및 리스크 진단 (Diagnostic Report)", expanded=True):
-            diag_c1, diag_c2, diag_c3 = st.columns(3)
-            
-            # 1. 하청 리스크 진단
-            with diag_c1:
-                sub_status = "🔴 위험 (의존도 높음)" if sub_ratio > 20 else ("🟡 주의" if sub_ratio > 5 else "🟢 양호")
-                st.markdown(f"**하청 의존 상태: {sub_status}**")
-                st.info(f"전체 물량의 {sub_ratio:.1f}%를 하청으로 처리 중입니다.")
-            
-            # 2. 노동 환경 진단
-            with diag_c2:
-                # 고용/해고 비용이 임금 대비 너무 높으면 경직된 것으로 간주
-                is_rigid = c_hiring > 800 or c_firing > 800
-                flex_status = "🔴 경직 (조정 비용 과다)" if is_rigid else "🟢 유연 (조정 원활)"
-                st.markdown(f"**노동 환경: {flex_status}**")
-                st.info(f"고용({c_hiring}) 및 해고({c_firing}) 비용이 높아 인력 구조가 고착화되기 쉽습니다.")
-
-            # 3. 비용 효율성
-            with diag_c3:
-                internal_cost = c_material + (c_regular * std_time) 
-                cost_ratio = (c_sub / internal_cost) if internal_cost > 0 else 0
-                price_status = "🔴 매우 비쌈" if cost_ratio > 1.5 else ("🟡 주의" if cost_ratio > 1.1 else "🟢 경쟁력 있음")
-                st.markdown(f"**하청 단가 수준: {price_status}**")
-                st.info(f"하청 단가({c_sub})가 자체 생산비({internal_cost:.0f}) 대비 {cost_ratio:.1f}배 수준입니다.")
 
         # Charts
         st.markdown("---")
@@ -270,6 +246,8 @@ with tab2:
             
             fig_work = go.Figure()
             fig_work.add_trace(go.Scatter(x=df['Month'], y=df['Workers(W)'], mode='lines+markers', name='인력', line=dict(color='#7950f2', width=3)))
+            if is_rigid:
+                fig_work.add_annotation(text="경직된 노동 구조 (인원 고정)", xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False, font=dict(size=14, color="red"), opacity=0.3)
             fig_work.update_layout(title="<b>월별 인력 변동 추이</b>", xaxis_title="월", yaxis_title="인원", template="plotly_white")
             st.plotly_chart(fig_work, use_container_width=True)
 
