@@ -187,7 +187,7 @@ if df_res is not None:
     m3.metric("총 하청 물량", f"{df_res['하청'].sum():,.0f} 개")
     m4.metric("최종 인력", f"{df_res['인력'].iloc[-1]} 명")
 
-    tabs = st.tabs(["📊 시각화 대시보드", "📋 상세 결과 데이터", "💰 비용 분석", "📖 이론적 배경"])
+    tabs = st.tabs(["📊 시각화 대시보드", "📋 상세 결과 데이터", "💰 비용 분석"])
 
     with tabs[0]:
         col1, col2 = st.columns(2)
@@ -244,39 +244,6 @@ if df_res is not None:
         fig_pie = px.pie(cost_df, values='금액', names='항목', title="총 비용 구성 비율", hole=0.4)
         st.plotly_chart(fig_pie, use_container_width=True)
         st.table(cost_df.style.format({"금액": "{:,.0f}"}))
-
-    with tabs[3]:
-        st.header("📖 총괄생산계획(APP) 이론적 배경")
-        col_t1, col_t2 = st.columns(2)
-        with col_t1:
-            st.subheader("1. 생산계획의 계층적 구조")
-            st.info("""
-            * **장기 계획 (RRP):** 자원소요계획. 공장 건설/확장 등 생산 능력 자체를 결정.
-            * **중기 계획 (APP/MPS):** 총괄생산계획 및 주일정계획. 제품군 단위 용량 확보 및 최종 제품 주 단위 계획.
-            * **단기 계획 (MRP/CRP):** 자재소요계획 및 능력소요계획. 부품 주문량/시기 결정 및 현장 실행 관리.
-            """)
-            st.subheader("2. 아웃소싱 및 지휘 체계")
-            st.write("""
-            * **아웃소싱 유형:** 외주, 협력업체, 파견, 도급, 하도급 등.
-            * **지휘 명령:** 
-                * **파견:** 사용사업주가 직접 지휘명령.
-                * **도급/하도급:** 수탁업체가 소속 근로자를 직접 지휘.
-            """)
-        with col_t2:
-            st.subheader("3. 모델링 접근 방식 (LP vs IP)")
-            st.warning(f"""
-            현재 선택된 모델: **{model_type}**
-            
-            * **LP (선형계획법):** 변수를 실수로 처리. 계산 속도가 빠르지만 인원수가 소수점으로 나올 수 있음.
-            * **IP (정수계획법):** 변수를 정수로 제한. 실제 현장에 바로 적용 가능한 수치를 도출. 총비용이 LP보다 높을 수 있음.
-            """)
-            st.subheader("4. 최적화 데이터 (초기값 기준)")
-            st.markdown(f"""
-            * **수요 ($D_t$):** 1월~6월 (1600, 3000, 3200, 3800, 2200, 2200)
-            * **표준 시간:** 개당 {std_time_per_unit}시간
-            * **근무 제약:** 인당 월 {work_days * work_hours}시간 (연장 최대 {max_ot_per_worker}시간)
-            * **재고 조건:** 기초 1,000 / 기말 500 이상
-            """)
 
 else:
     st.error("❌ 최적해를 찾을 수 없습니다. 제약 조건을 확인해 주세요.")
