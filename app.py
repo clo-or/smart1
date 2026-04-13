@@ -59,22 +59,6 @@ with tab1:
     
     st.sidebar.title("🛠️ 모델 파라미터 설정")
     
-    # Quick Presets for Presentation
-    st.sidebar.subheader("🎯 발표용 프리셋")
-    p_col1, p_col2 = st.sidebar.columns(2)
-    if p_col1.button("📉 비효율 모드", help="비용이 높고 미납이 발생하는 상황 세팅"):
-        st.session_state['d_init_i'] = 100
-        st.session_state['d_ot_limit'] = 5
-        st.session_state['d_c_sub'] = 60
-        st.rerun()
-    if p_col2.button("✨ 최적화 모드", help="효율적인 파라미터로 자동 세팅"):
-        st.session_state['d_init_i'] = 500
-        st.session_state['d_ot_limit'] = 20
-        st.session_state['d_c_sub'] = 30
-        st.rerun()
-    
-    st.sidebar.markdown("---")
-    
     with st.sidebar.expander("📅 수요 예측 (Demand)", expanded=False):
         default_d = [1600, 3000, 3200, 3800, 2200, 2200]
         months_input = st.number_input("계획 기간 (개월)", 1, 12, 6)
@@ -92,15 +76,15 @@ with tab1:
         c_firing = st.number_input("해고 비용 (/인)", value=500)
         c_holding = st.number_input("재고 유지비 (/개/월)", value=2)
         c_backlog = st.number_input("부재고 비용 (/개/월)", value=10) # 부재고 비용을 높여서 미납 최소화 유도
-        c_sub = st.number_input("하청 비용 (/개)", value=st.session_state.get('d_c_sub', 50))
+        c_sub = st.number_input("하청 비용 (/개)", value=30)
 
     with st.sidebar.expander("⚙️ 생산 능력 및 제약 (Capacity)", expanded=True):
         init_w = st.number_input("초기 인원 (명)", value=80)
-        init_i = st.number_input("초기 재고 (개)", value=st.session_state.get('d_init_i', 500)) 
+        init_i = st.number_input("초기 재고 (개)", value=500) 
         final_i_min = st.number_input("최종 재고 최소치 (개)", value=500)
         work_days = st.number_input("작업 일수 (/월)", value=20)
         work_hours = st.number_input("정규 작업 시간 (/일)", value=8)
-        ot_limit = st.number_input("초과 시간 제한 (시간/인/월)", value=st.session_state.get('d_ot_limit', 10))
+        ot_limit = st.number_input("초과 시간 제한 (시간/인/월)", value=10)
         std_time = st.number_input("작업 표준 시간 (시간/개)", value=4)
 
     model_type = st.sidebar.selectbox("🔢 변수 유형 선택", ["LP (Linear Programming)", "IP (Integer Programming)"])
