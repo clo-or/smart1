@@ -210,24 +210,22 @@ with tab2:
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         
         def get_delta(key, current_val, inverse=False):
-            if 'prev_metrics' in st.session_state and st.session_state['prev_metrics']:
+            if 'prev_metrics' in st.session_state and st.session_state.get('prev_metrics'):
                 prev_val = st.session_state['prev_metrics'].get(key, None)
                 if prev_val is not None and prev_val != 0:
                     diff = current_val - prev_val
                     pct = (diff / prev_val) * 100
-                    if inverse:
-                        return f"{pct:+.1f}%", "normal" if diff > 0 else "inverse"
-                    return f"{pct:+.1f}%", "normal"
-            return None, None
+                    # 비용은 늘어나면 빨간색(inverse), 효율은 늘어나면 초록색(normal)
+                    color = "inverse" if inverse else "normal"
+                    return f"{pct:+.1f}%", color
+            return None, "normal"
 
         # 내부 로직용 판별
-        is_rigid = c_hiring > 800 or c_firing > 800
-        internal_cost = c_material + (c_regular * std_time)
-        is_sub_expensive = c_sub > internal_cost * 1.2
+        internal_cost = c_material + (c_regular * std_time) 
         
         # 1. 총 비용
-        cost_delta, cost_delta_color = get_delta("cost", cost, inverse=True)
-        col_m1.metric("총 비용 (Total Cost)", f"{cost/1000:,.1f}M", delta=cost_delta, delta_color=cost_delta_color)
+        cost_delta, cost_color = get_delta("cost", cost, inverse=True)
+        col_m1.metric("총 비용 (Total Cost)", f"{cost/1000:,.1f}M", delta=cost_delta, delta_color=cost_color)
         
         # 2. 평균 가동률
         util_delta, util_delta_color = get_delta("util", avg_utilization)
