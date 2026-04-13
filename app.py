@@ -44,133 +44,18 @@ st.markdown("""
     .stTabs [aria-selected="true"] {
         background-color: #ffffff;
         color: #228be6 !important;
-        border-bottom: 2px solid #228be6 !important;
-    }
-    
-    .process-card {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 12px;
-        border-left: 5px solid #228be6;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-    }
-    
-    .process-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #1a1a1a;
-        margin-bottom: 8px;
-    }
-    
-    .process-desc {
-        font-size: 0.95rem;
-        color: #4a4a4a;
-        line-height: 1.6;
-    }
-    
-    .metric-container {
-        display: flex;
-        justify-content: space-between;
-        background: linear-gradient(135deg, #228be6 0%, #15aabf 100%);
-        padding: 25px;
-        border-radius: 15px;
-        color: white;
-        margin-bottom: 30px;
-    }
-    
-    .metric-box {
-        text-align: center;
-        flex: 1;
-    }
-    
-    .metric-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-    }
-    
-    .metric-label {
-        font-size: 0.9rem;
-        opacity: 0.9;
     }
     </style>
     """, unsafe_allow_html=True)
 
 # Title and Header
-st.title("🏭 스마트 제조 생산계획 및 최적화 시스템")
+st.title("🚜 원예장비 총괄생산계획(APP) 시뮬레이터")
 st.markdown("---")
 
-tab1, tab2, tab3 = st.tabs(["📘 생산계획 프로세스", "⚙️ APP 모델 수립", "📊 최적화 결과 및 분석"])
+tab1, tab2 = st.tabs(["⚙️ APP 모델 수립", "📊 최적화 결과 및 분석"])
 
 with tab1:
-    st.header("1. 생산계획(Production Planning) 개요")
-    
-    # Mermaid Diagram
-    st.markdown("""
-    ```mermaid
-    graph TD
-        A[자원소요계획 RRP] --> B[총괄생산계획 APP]
-        B --> C[수요관리 Demand Mgmt]
-        C --> D[주생산계획 MPS]
-        D --> E[개략능력계획 RCCP]
-        E --> F[자재소요계획 MRP]
-        F --> G[능력소요계획 CRP]
-        G --> H[생산/구매 오더 확인]
-    ```
-    """, unsafe_allow_html=True)
-    
-    st.write("생산계획은 제품의 예측 수명을 기반으로 장기, 중기, 단기 계획을 순차적으로 확장하여 최종적으로 생산 또는 구매 계획을 수립하는 프로세스입니다.")
-    
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        st.subheader("📍 프로세스 단계별 정의")
-        
-        processes = [
-            ("자원소요계획 (RRP)", "장기간에 걸친 생산 능력 소요량을 결정하며, 새로운 공장 건설이나 확장을 고려합니다."),
-            ("총괄생산계획 (APP / S&OP)", "제품군(Product Family) 단위의 중장기 계획으로, 생산용량(설비, 인력) 조정 및 예산 확보가 목적입니다."),
-            ("수요관리 (Demand Management)", "실제 고객 주문과 수요 예측을 결합하여 관리합니다."),
-            ("주생산계획 (MPS)", "수요 관리로부터 확정 주문과 예측을 받아 예상 스케줄을 작성하며, 주로 주(Week) 단위로 최종 제품을 대상으로 수행합니다."),
-            ("개략적 생산능력 계획 (RCCP)", "MPS의 실현 가능성을 확인하기 위해 핵심 자원의 능력을 검증합니다."),
-            ("자재소요계획 (MRP)", "MPS를 토대로 완제품 구성에 필요한 자재의 종류, 수량, 주문 시기를 결정합니다. (JIT 사상과 유사)"),
-            ("생산 능력 소요 계획 (CRP)", "계획 발주, 재공품 상태, 리드타임 등을 고려하여 정밀한 능력을 검토합니다."),
-            ("작업발주 (Job Release)", "MRP의 계획을 확정하여 현장에 작업 지시를 통보합니다.")
-        ]
-        
-        for title, desc in processes:
-            st.markdown(f"""
-                <div class="process-card">
-                    <div class="process-title">{title}</div>
-                    <div class="process-desc">{desc}</div>
-                </div>
-            """, unsafe_allow_html=True)
-
-    with col2:
-        st.subheader("💰 총괄생산계획의 고려 요소")
-        st.info("**판매 및 생산계획(S&OP)**: 수요와 공급의 균형 유지를 강조하는 ERP 용어")
-        
-        costs_info = {
-            "기본 생산비용": "고정비/변동비, 직접비/간접비, 정기 보너스, 초과근무 수당",
-            "생산율 변화 비용": "충원비용, 해고비용, 교육훈련비용",
-            "재고 유지비용": "자본/금융비용, 보관, 보험, 세금, 손괴 및 진부화 비용",
-            "추후 납품비용 (Backlog)": "지연 생산 촉진비용, 이미지 실추 및 판매기회 상실 기회비용",
-            "하청비용": "하청 추가 비용 (하청비용 - 자체생산비용)"
-        }
-        
-        for k, v in costs_info.items():
-            with st.expander(f"**{k}**"):
-                st.write(v)
-                
-        st.subheader("🏢 아웃소싱(Outsourcing) 유형")
-        st.write("기업 내부 업무를 외부 전문 업체에 위탁하는 전략")
-        st.markdown("""
-        - **도급 (용역, 하청)**: 물품대금/노무비 지급, 하청업체가 근로자 직접 지휘
-        - **파견**: 파견사업주와 근로계약, 사용사업주가 근로자 지휘 명령
-        - **하도급**: 원도급업체와 하청업체 간의 계약 구조
-        """)
-
-with tab2:
-    st.header("2. 원예장비 제조업체 APP 모델링 예제")
+    st.subheader("🛠️ 시나리오 설정")
     
     st.sidebar.title("🛠️ 모델 파라미터 설정")
     
@@ -204,28 +89,6 @@ with tab2:
 
     model_type = st.sidebar.selectbox("🔢 변수 유형 선택", ["LP (Linear Programming)", "IP (Integer Programming)"])
     var_cat = 'Continuous' if "LP" in model_type else 'Integer'
-
-    st.subheader("📝 수학적 모델 (Pyomo 기반)")
-    col_m1, col_m2 = st.columns(2)
-    with col_m1:
-        st.markdown(f"""
-        **목적함수 (Minimize Cost):**
-        $Z = \\sum_t (640W_t + 6O_t + 300H_t + 500L_t + 2I_t + 5S_t + 10P_t + 30C_t)$
-        
-        **주요 제약조건:**
-        1. **인력 균형:** $W_t = W_{{t-1}} + H_t - L_t$
-        2. **생산량 제약:** $P_t \\le 40W_t + O_t / 4$
-        3. **재고 균형:** $I_t = I_{{t-1}} + P_t + C_t - D_t - S_{{t-1}} + S_t$
-        4. **연장근로 제한:** $O_t \\le 10W_t$
-        """)
-    with col_m2:
-        st.code("""
-# Pyomo Implementation Snippet
-m.Cost = Objective(expr = sum(
-    640*m.W[t] + 6*m.O[t] + 300*m.H[t] + 500*m.L[t] + 
-    2*m.I[t] + 5*m.S[t] + 10*m.P[t] + 30*m.C[t] 
-    for t in T), sense=minimize)
-        """, language="python")
 
     # Optimization Logic
     def run_optimization():
@@ -308,7 +171,7 @@ m.Cost = Objective(expr = sum(
         else:
             st.error("❌ 최적해를 찾을 수 없습니다. 제약조건을 완화해 보세요.")
 
-with tab3:
+with tab2:
     if 'df_res' in st.session_state:
         df = st.session_state['df_res']
         cost = st.session_state['total_cost']
@@ -352,6 +215,38 @@ with tab3:
 
             for insight in insights:
                 st.write(insight)
+
+        with st.expander("📉 비용 절감 핵심 전략 (Cost Reduction Focus)", expanded=True):
+            # Calculate cost breakdown here for logic
+            cost_summary = {
+                "정규 노동": (df['Workers(W)'] * c_regular * work_days * work_hours).sum(),
+                "연장 근로": (df['OT(O)'] * c_overtime).sum(),
+                "고용/해고": (df['Hired(H)'] * c_hiring + df['LaidOff(L)'] * c_firing).sum(),
+                "재고 유지": (df['Inv(I)'] * c_holding).sum(),
+                "부족분(Backlog)": (df['Shortage(S)'] * c_backlog).sum(),
+                "재료비": (df['Prod(P)'] * c_material).sum(),
+                "하청": (df['Sub(C)'] * c_sub).sum()
+            }
+            sorted_costs = sorted(cost_summary.items(), key=lambda x: x[1], reverse=True)
+            top_cost_item = sorted_costs[0][0]
+            
+            st.write(f"현재 가장 큰 비용을 차지하는 항목은 **'{top_cost_item}'** 입니다. 전체 비용을 낮추기 위해 다음 전략을 우선적으로 검토하십시오.")
+            
+            advice = {
+                "정규 노동": "• **공정 개선/자동화**: 정규 노동비 비중이 가장 큽니다. 단기 성과보다는 장기적인 공정 자동화나 작업 효율 개선(표준 시간 단축)을 통해 기초 생산 단가를 낮춰야 합니다.",
+                "재료비": "• **공급망 최적화**: 재료비 비중이 높습니다. 대량 구매를 통한 단가 할인, 대체 원자재 발굴 또는 불량률(스크랩) 절감을 통해 재료비 단가를 낮추는 것이 필수적입니다.",
+                "하청": f"• **자체 생산 확대**: 외부 하청 비용(개당 {c_sub}천원)이 자체 생산 비용보다 현저히 높습니다. 인력을 추가 고용하거나 초과 근무 한도를 늘려 자체 생산량을 높이는 것이 유리합니다.",
+                "재고 유지": "• **재고 관리 슬림화**: 재고 유지 비용이 많이 발생하고 있습니다. 안전 재고 수준을 낮추거나(JIT 방식), 수요 예측의 정확도를 높여 선제적 생산보다는 수요에 밀착된 생산 계획을 수립해야 합니다.",
+                "고용/해고": "• **안정적 고용 체계**: 빈번한 인력 변동으로 인한 고용/해고 비용이 큽니다. 숙련도 향상을 위해 안정적인 정규직 체제를 유지하고, 변동하는 수요는 고용 조정보다는 하청이나 연장 근로로 대응하는 것이 비용 면에서 유리할 수 있습니다.",
+                "연장 근로": "• **인력 확충**: 연장 근로 수당이 많이 지불되고 있습니다. 초과 근무를 줄이기 위해 정규직 인원을 더 채용하거나, 생산 설비를 확충하여 정규 시간 내 생산 능력을 높여야 합니다.",
+                "부족분(Backlog)": "• **생산 능력 선행 확보**: 납기 지연으로 인한 비용이 심각합니다. 수요가 몰리는 시기 이전에 미리 재고를 축적하거나, 비상시에 대비한 하청 업체 및 설비 여력을 사전에 확보해야 합니다."
+            }
+            
+            # Show top 3 advice
+            for i in range(min(3, len(sorted_costs))):
+                item, val = sorted_costs[i]
+                if val > 0:
+                    st.info(advice.get(item, f"• **{item} 절감**: 해당 항목의 비중을 낮추기 위한 운영 효율화가 필요합니다."))
 
         # Charts
         st.markdown("---")
